@@ -1,0 +1,31 @@
+const loader = document.getElementById('loader');
+
+async function fetchPokemon(idOrName) {
+    // 1. Mostrar cargador y limpiar pantalla anterior
+    loader.classList.remove('hidden');
+    cardContainer.innerHTML = ''; 
+    
+    try {
+        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${idOrName}`);
+        if (!response.ok) throw new Error("Pokémon no encontrado");
+        
+        const data = await response.json();
+
+        // Buscamos debilidades (lo que hicimos antes)
+        const typeDataPromises = data.types.map(t => fetch(t.type.url).then(res => res.json()));
+        const typesDetails = await Promise.all(typeDataPromises);
+        
+        let weaknesses = new Set();
+        typesDetails.forEach(typeDetail => {
+            typeDetail.damage_relations.double_damage_from.forEach(w => weaknesses.add(w.name));
+        });
+
+        // 2. Ocultar cargador antes de renderizar
+        loader.classList.add('hidden');
+        renderCard(data, Array.from(weaknesses));
+
+    } catch (error) {
+        loader.classList.add('hidden');
+        cardContainer.innerHTML = `<p style="color: red; font-weight: bold;">❌ Error: ${error.message}</p>`;
+    }
+}
